@@ -56,6 +56,20 @@ export async function GET(req: NextRequest) {
       const data = JSON.parse(fs.readFileSync(tracePath, "utf-8"));
       const events = data.events || [];
 
+      // Read result.json for system_prompt and user_message
+      let systemPrompt = "";
+      let userMessage = "";
+      let reward: number | null = null;
+      const resultPath = path.join(taskDir, "result.json");
+      if (fs.existsSync(resultPath)) {
+        try {
+          const resultData = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+          systemPrompt = resultData.system_prompt || "";
+          userMessage = resultData.user_message || "";
+          reward = resultData.reward ?? null;
+        } catch {}
+      }
+
       // Parse events into a readable format
       const turns = events.map((ev: any, idx: number) => {
         const role = ev?.content?.role || "unknown";
@@ -99,7 +113,7 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      return NextResponse.json({ task, turns });
+      return NextResponse.json({ task, turns, systemPrompt, userMessage, reward });
     }
   }
 

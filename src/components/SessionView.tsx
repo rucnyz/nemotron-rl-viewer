@@ -35,6 +35,9 @@ export default function SessionView({ dir }: { dir: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [userMessage, setUserMessage] = useState("");
+  const [reward, setReward] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
@@ -51,6 +54,9 @@ export default function SessionView({ dir }: { dir: string }) {
     if (res.ok) {
       const data = await res.json();
       setTurns(data.turns || []);
+      setSystemPrompt(data.systemPrompt || "");
+      setUserMessage(data.userMessage || "");
+      setReward(data.reward ?? null);
       setError(data.error ? JSON.stringify(data.error, null, 2) : null);
     }
   }, [dir]);
@@ -95,6 +101,53 @@ export default function SessionView({ dir }: { dir: string }) {
 
         {!selectedTask && (
           <div className="text-center text-gray-400 py-20">Select a session from the sidebar</div>
+        )}
+
+        {/* Reward badge */}
+        {selectedTask && reward !== null && (
+          <div className={`mb-3 px-4 py-2 rounded-lg text-sm font-mono font-semibold ${
+            reward > 0 ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"
+          }`}>
+            Reward: {reward}
+          </div>
+        )}
+
+        {/* System prompt */}
+        {systemPrompt && (
+          <div className="border rounded-lg mb-3 overflow-hidden">
+            <div className="px-4 py-2 bg-purple-50 border-b text-sm font-semibold text-purple-700">System Prompt</div>
+            <div className="px-4 py-3 border-l-4 border-purple-200 bg-purple-50">
+              <div className="text-sm whitespace-pre-wrap break-words font-mono leading-relaxed">
+                {systemPrompt.length > 2000 ? (
+                  <details>
+                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                      {systemPrompt.slice(0, 300)}... ({systemPrompt.length} chars)
+                    </summary>
+                    <div className="mt-2">{systemPrompt}</div>
+                  </details>
+                ) : systemPrompt}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User message (task instruction) */}
+        {userMessage && (
+          <div className="border rounded-lg mb-3 overflow-hidden">
+            <div className="px-4 py-2 bg-blue-50 border-b text-sm font-semibold text-blue-700">User Message</div>
+            <div className="px-4 py-3 border-l-4 border-blue-200 bg-blue-50">
+              <div className="text-sm whitespace-pre-wrap break-words font-mono leading-relaxed">
+                {userMessage.length > 3000 ? (
+                  <details>
+                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                      {userMessage.slice(0, 300)}... ({userMessage.length} chars)
+                    </summary>
+                    <div className="mt-2">{userMessage}</div>
+                  </details>
+                ) : userMessage}
+              </div>
+            </div>
+          </div>
         )}
 
         {turns.map((turn) => (
