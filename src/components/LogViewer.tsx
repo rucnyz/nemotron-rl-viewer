@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import AnsiToHtml from "ansi-to-html";
 
 interface Props {
   dir: string;
@@ -14,6 +15,8 @@ export default function LogViewer({ dir, filename }: Props) {
   const [tail, setTail] = useState(200);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const ansi = useMemo(() => new AnsiToHtml({ fg: "#374151", bg: "transparent" }), []);
 
   const fetchLog = useCallback(async () => {
     const params = new URLSearchParams({ dir, name: filename, tail: String(tail) });
@@ -38,22 +41,6 @@ export default function LogViewer({ dir, filename }: Props) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [lines, autoRefresh]);
-
-  const colorize = (line: string) => {
-    if (line.includes("FAILED") || line.includes("error") || line.includes("Error")) {
-      return "text-red-600";
-    }
-    if (line.includes("PASSED") || line.includes("DONE reward=1")) {
-      return "text-green-600";
-    }
-    if (line.includes("[OpenSage]")) {
-      return "text-blue-600";
-    }
-    if (line.includes("WARNING") || line.includes("UserWarning")) {
-      return "text-yellow-600";
-    }
-    return "text-gray-700";
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -97,9 +84,9 @@ export default function LogViewer({ dir, filename }: Props) {
       {/* Log content */}
       <div className="flex-1 overflow-y-auto bg-white border rounded m-2 p-4 font-mono text-xs leading-5">
         {lines.map((line, i) => (
-          <div key={i} className={colorize(line)}>
-            <span className="select-none text-gray-300 mr-3">{String(i + 1).padStart(4)}</span>
-            {line || "\u00A0"}
+          <div key={i} className="flex">
+            <span className="select-none text-gray-300 mr-3 shrink-0">{String(i + 1).padStart(4)}</span>
+            <span dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || "\u00A0" }} />
           </div>
         ))}
         <div ref={bottomRef} />
