@@ -6,6 +6,11 @@ interface ToolCall {
   output: string;
 }
 
+interface PromptMessage {
+  role: string;
+  content: string;
+}
+
 interface Turn {
   task_id: string;
   sample: number;
@@ -16,6 +21,7 @@ interface Turn {
   elapsed: number;
   assistant_response: string;
   env_observation: string;
+  prompt?: PromptMessage[];
 }
 
 export default function TurnView({ turns }: { turns: Turn[] }) {
@@ -35,6 +41,32 @@ export default function TurnView({ turns }: { turns: Turn[] }) {
     <div className="flex gap-4 h-full">
       {/* Main: turns */}
       <div className="flex-1 overflow-y-auto">
+        {/* Initial prompt (from turn 1) */}
+        {turns[0]?.prompt && turns[0].prompt.length > 0 && (
+          <div className="border rounded-lg mb-3 overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold">Prompt</div>
+            {turns[0].prompt.map((msg, idx) => {
+              const bg = msg.role === "system" ? "bg-purple-50 border-purple-200" : "bg-blue-50 border-blue-200";
+              const label = msg.role === "system" ? "text-purple-700" : "text-blue-700";
+              return (
+                <div key={idx} className={`px-4 py-3 border-l-4 ${bg}`}>
+                  <div className={`text-xs font-semibold uppercase mb-1 ${label}`}>{msg.role}</div>
+                  <div className="text-sm whitespace-pre-wrap break-words font-mono leading-relaxed">
+                    {msg.content.length > 3000 ? (
+                      <details>
+                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                          {msg.content.slice(0, 300)}... ({msg.content.length} chars)
+                        </summary>
+                        <div className="mt-2">{msg.content}</div>
+                      </details>
+                    ) : msg.content}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {turns.map((turn, idx) => (
           <div key={idx} className="border rounded-lg mb-3 overflow-hidden">
             {/* Turn header */}
