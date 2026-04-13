@@ -95,9 +95,10 @@ export default function LogViewer({ dir, filename }: Props) {
       </div>
 
       {/* Log content */}
-      <div className="flex-1 overflow-y-auto bg-gray-900 p-4 font-mono text-xs leading-5">
+      <div className="flex-1 overflow-y-auto bg-white border rounded m-2 p-4 font-mono text-xs leading-5">
         {lines.map((line, i) => (
           <div key={i} className={colorize(line)}>
+            <span className="select-none text-gray-300 mr-3">{String(i + 1).padStart(4)}</span>
             {line || "\u00A0"}
           </div>
         ))}

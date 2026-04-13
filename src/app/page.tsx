@@ -36,6 +36,11 @@ interface Stats {
 
 type ViewMode = "trajectories" | "log";
 
+function getSavedDir(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("nrl-viewer-dir") ?? "";
+}
+
 export default function Home() {
   const [dir, setDir] = useState("");
   const [dirInput, setDirInput] = useState("");
@@ -67,10 +72,13 @@ export default function Home() {
       setLogFiles(data.logFiles ?? []);
       setExperiments(data.experiments ?? []);
       setDir(data.dir);
+      setDirInput(data.dir);
       setSelectedFile(null);
       setSelectedLog(null);
       setSamples([]);
       setStats(null);
+      // Persist dir in localStorage
+      localStorage.setItem("nrl-viewer-dir", data.dir);
       // Auto-select log if no jsonl files but logs exist
       if ((data.files ?? []).length === 0 && (data.logFiles ?? []).length > 0) {
         setViewMode("log");
@@ -115,6 +123,15 @@ export default function Home() {
     },
     [dir, sortBy, sortOrder, rewardFilter]
   );
+
+  // Auto-load from localStorage on mount
+  useEffect(() => {
+    const saved = getSavedDir();
+    if (saved) {
+      setDirInput(saved);
+      loadFiles(saved);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedFile && viewMode === "trajectories") {
