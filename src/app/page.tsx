@@ -5,6 +5,7 @@ import ConversationView from "@/components/ConversationView";
 import StatsBar from "@/components/StatsBar";
 import LogViewer from "@/components/LogViewer";
 import TurnView from "@/components/TurnView";
+import SessionView from "@/components/SessionView";
 
 interface FileInfo {
   name: string;
@@ -38,7 +39,7 @@ interface TrajStep { name: string; taskCount: number }
 interface TrajTask { name: string; sampleCount: number }
 interface TrajSample { name: string; turns: number; terminated: boolean; reward: number | null }
 
-type ViewMode = "rollouts" | "training" | "log";
+type ViewMode = "sessions" | "rollouts" | "training" | "log";
 
 function getSavedDir(): string {
   if (typeof window === "undefined") return "";
@@ -51,7 +52,7 @@ export default function Home() {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [logFiles, setLogFiles] = useState<FileInfo[]>([]);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>("rollouts");
+  const [viewMode, setViewMode] = useState<ViewMode>("sessions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -195,7 +196,7 @@ export default function Home() {
   };
 
   const totalPages = Math.ceil(total / pageSize);
-  const tabCounts = { rollouts: trajSteps.length, training: files.length, log: logFiles.length };
+  const tabCounts = { sessions: 1, rollouts: trajSteps.length, training: files.length, log: logFiles.length };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -235,7 +236,7 @@ export default function Home() {
             {(["rollouts", "training", "log"] as ViewMode[]).map((mode) => (
               <button key={mode} onClick={() => setViewMode(mode)}
                 className={`flex-1 py-2 text-xs font-semibold ${viewMode === mode ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-400"}`}>
-                {mode === "rollouts" ? "Rollouts" : mode === "training" ? "Training" : "Logs"} ({tabCounts[mode]})
+                {mode === "sessions" ? "Sessions" : mode === "rollouts" ? "Rollouts" : mode === "training" ? "Training" : "Logs"} ({tabCounts[mode]})
               </button>
             ))}
           </div>
@@ -305,6 +306,9 @@ export default function Home() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Log viewer */}
         {viewMode === "log" && selectedLog && <LogViewer dir={dir} filename={selectedLog} />}
+
+        {/* Sessions viewer */}
+        {viewMode === "sessions" && dir && <SessionView dir={dir} />}
 
         {/* Rollout turn view */}
         {viewMode === "rollouts" && (
