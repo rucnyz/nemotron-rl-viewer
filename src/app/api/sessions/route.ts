@@ -20,24 +20,25 @@ export async function GET(req: NextRequest) {
 
   // List all tasks
   if (!task) {
-    const tasks: { name: string; hasTrace: boolean; hasError: boolean }[] = [];
+    const tasks: { name: string; hasTrace: boolean; hasLive: boolean; hasError: boolean }[] = [];
 
     for (const entry of fs.readdirSync(jobsDir).sort()) {
       const entryPath = path.join(jobsDir, entry);
       if (!fs.statSync(entryPath).isDirectory()) continue;
 
-      // Look for session_trace.json inside nested task dir
       let hasTrace = false;
+      let hasLive = false;
       let hasError = false;
       for (const sub of fs.readdirSync(entryPath)) {
         const subPath = path.join(entryPath, sub);
         if (fs.statSync(subPath).isDirectory()) {
           if (fs.existsSync(path.join(subPath, "session_trace.json"))) hasTrace = true;
+          if (fs.existsSync(path.join(subPath, "live_events.jsonl"))) hasLive = true;
           if (fs.existsSync(path.join(subPath, "error.json"))) hasError = true;
         }
       }
 
-      tasks.push({ name: entry, hasTrace, hasError });
+      tasks.push({ name: entry, hasTrace, hasLive, hasError });
     }
 
     return NextResponse.json({ tasks });
@@ -114,6 +115,57 @@ export async function GET(req: NextRequest) {
       });
 
       return NextResponse.json({ task, turns, systemPrompt, userMessage, reward });
+    }
+  }
+
+  // Check for live_events.jsonl (in-progress task)
+  for (const sub of fs.readdirSync(taskDir)) {
+    const livePath = path.join(taskDir, sub, "live_events.jsonl");
+    if (fs.existsSync(livePath)) {
+      const lines = fs.readFileSync(livePath, "utf-8").trim().split("\n").filter(Boolean);
+      const events = lines.map((line) => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+
+      // Read result.json if available
+      let systemPrompt = "";
+      let userMessage = "";
+      let reward: number | null = null;
+      const resultPath = path.join(taskDir, "result.json");
+      if (fs.existsSync(resultPath)) {
+        try {
+          const resultData = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+          systemPrompt = resultData.system_prompt || "";
+          userMessage = resultData.user_message || "";
+          reward = resultData.reward ?? null;
+        } catch {}
+      }
+
+      const turns = events.map((ev: any, idx: number) => {
+        const role = ev?.content?.role || "unknown";
+        const parts = ev?.content?.parts || [];
+        const textParts: string[] = [];
+        const functionCalls: { name: string; args: any; id: string }[] = [];
+        const functionResponses: { name: string; response: any; id: string }[] = [];
+
+        for (const part of parts) {
+          if (part.text) textParts.push(part.text);
+          if (part.function_call || part.functionCall) {
+            const fc = part.function_call || part.functionCall;
+            functionCalls.push({ name: fc.name || "", args: fc.args || {}, id: fc.id || "" });
+          }
+          if (part.function_response || part.functionResponse) {
+            const fr = part.function_response || part.functionResponse;
+            functionResponses.push({ name: fr.name || "", response: fr.response || {}, id: fr.id || "" });
+          }
+        }
+
+        return {
+          index: idx, role, author: ev.author || "", text: textParts.join("\n"),
+          functionCalls, functionResponses, timestamp: ev.timestamp,
+          usageMetadata: ev.usage_metadata || ev.usageMetadata || null,
+        };
+      });
+
+      return NextResponse.json({ task, turns, systemPrompt, userMessage, reward, live: true });
     }
   }
 

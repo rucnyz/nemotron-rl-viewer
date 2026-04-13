@@ -28,6 +28,7 @@ interface Turn {
 interface Task {
   name: string;
   hasTrace: boolean;
+  hasLive: boolean;
   hasError: boolean;
 }
 
@@ -81,6 +82,7 @@ export default function SessionView({ dir }: { dir: string }) {
             <div className="truncate">{t.name}</div>
             <div className="flex gap-1 mt-0.5">
               {t.hasTrace && <span className="bg-green-100 text-green-700 px-1 rounded text-[10px]">trace</span>}
+              {t.hasLive && !t.hasTrace && <span className="bg-amber-100 text-amber-700 px-1 rounded text-[10px]">live</span>}
               {t.hasError && <span className="bg-red-100 text-red-600 px-1 rounded text-[10px]">error</span>}
             </div>
           </button>
