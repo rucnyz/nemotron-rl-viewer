@@ -41,7 +41,7 @@ interface TrajSample { name: string; turns: number; terminated: boolean; reward:
 
 type ViewMode = "sessions" | "rollouts" | "training" | "log";
 
-const DEFAULT_DIR = "/data/yuzhou/projects/RL/research/opensage/logs/grpo-workplace-assistant-nemotron-nano-v2-9b/exp_001";
+const DEFAULT_DIR = "/data/yuzhou/projects/RL/research/opensage/logs";
 
 function getSavedDir(): string {
   if (typeof window === "undefined") return "";
